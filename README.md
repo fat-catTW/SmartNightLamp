@@ -32,10 +32,10 @@ The system interprets it as standing up.
 <img src="pictures/wiring.png" width="800">
 
 ## Features
-Night mode (00:00–06:00)
-Pose-based activity detection
-2-minute auto shutoff
-USB relay control
+- Night mode (00:00–06:00)
+- Pose-based activity detection
+- 2-minute auto shutoff
+- USB relay control
 
 ## Tech Stack
 Python, OpenCV, MediaPipe, PySerial, Raspberry Pi
