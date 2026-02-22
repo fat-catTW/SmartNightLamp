@@ -1,9 +1,9 @@
-# 智慧夜燈系統（使用 Raspberry Pi + USB 繼電器 + IR Camera + USB LED）
-# --- 使用套件 ---
-# pyserial：控制 USB 繼電器
-# opencv-python：讀取紅外線相機畫面
-# mediapipe：分析人體姿勢
-# datetime：判斷啟動時間區間
+# SmartNightLamp (Raspberry Pi + USB Relay + IR Camera + USB LED)
+# --- Required Libraries ---
+# pyserial: Control USB relay modules
+# opencv-python: Capture frames from camera
+# mediapipe: Perform human pose estimation
+# datetime: Check active time window
 
 import cv2
 import mediapipe as mp
@@ -11,11 +11,11 @@ import time
 import serial
 from datetime import datetime
 
-# 設定設備路徑（用 ls /dev/serial/by-id/ 確認）
+# Device paths (check using: ls /dev/serial/by-id/)
 USB_LED_PORT = '/dev/serial/by-id/usb-relay-usbled'
 IR_LED_PORT = '/dev/serial/by-id/usb-relay-irled'
 
-# USB 繼電器初始化
+# Initialize USB relay connections
 usb_led = serial.Serial(USB_LED_PORT, 9600)
 ir_led = serial.Serial(IR_LED_PORT, 9600)
 
@@ -29,48 +29,49 @@ def in_night_mode():
     now = datetime.now()
     return now.hour >= 0 and now.hour < 6
 
-# MediaPipe 初始化
+# Initialize MediaPipe pose estimation
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
-# 相機初始化（使用 Pi Camera 或 USB Camera）
+# Initialize camera (Pi Camera or USB camera)
 cap = cv2.VideoCapture(0)
 
-print("系統啟動中... 只在夜間模式才會偵測")
+print("System started... Detection only active during night mode.")
 
 led_on_time = 0
-LED_DURATION = 120  # 秒
+LED_DURATION = 120  # seconds
 
 while True:
     if not in_night_mode():
         time.sleep(60)
         continue
 
-    # 啟動 IR 燈
+    # Turn on IR illuminator
     relay_on(ir_led)
 
-    ret, frame = cap.read() #從相機取一帪畫面
+    ret, frame = cap.read()  # Capture a frame from the camera
     if not ret:
         continue
 
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #顏色格式轉成 RGB
-    results = pose.process(rgb_frame)                  #把圖丟給MediaPipe模型畫骨架
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+    results = pose.process(rgb_frame)                   # Run pose estimation
 
     if results.pose_landmarks:
-        landmarks = results.pose_landmarks.landmark #取的mediaPipe的標記點
+        landmarks = results.pose_landmarks.landmark  # Extract detected landmarks
         nose_y = landmarks[mp_pose.PoseLandmark.NOSE].y
         hip_y = landmarks[mp_pose.PoseLandmark.LEFT_HIP].y
 
-        # 假設 nose 高於 hip，代表起身（值越小代表越靠上）
+        # If nose is significantly higher than hip,
+        # interpret it as a standing-up action
         if nose_y < hip_y - 0.1:
-            print("偵測到起身！啟動 USB LED")
+            print("Standing detected! Turning on USB LED.")
             relay_on(usb_led)
             led_on_time = time.time()
 
-    # 如果 LED 已經亮超過兩分鐘就關掉
+    # Turn off LED after predefined duration
     if led_on_time != 0 and time.time() - led_on_time > LED_DURATION:
-        print("兩分鐘到，自動關閉 USB LED")
+        print("Timeout reached. Turning off USB LED.")
         relay_off(usb_led)
         led_on_time = 0
 
-    time.sleep(1)  # 每秒判斷一次
+    time.sleep(1)  # Check once per second
