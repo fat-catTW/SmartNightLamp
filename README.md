@@ -9,6 +9,15 @@ Turning on lights manually at night can be inconvenient and unsafe.
 This project explores a vision-based solution to detect "lying-to-standing" transitions automatically.
 
 ## System Architecture
+<p align="center">
+IR Camera <br>
+↓ <br>
+Pose Detection <br>
+↓ <br>
+Decision Logic <br>
+↓ <br>
+Relay Control
+</p>
 
 ## Detection Logic
 The system compares the normalized Y-coordinate of
@@ -18,6 +27,9 @@ If:
 nose_y < hip_y - threshold
 
 The system interprets it as standing up.
+
+## Wiring
+<img src="pictures/wiring.png" width="800">
 
 ## Features
 Night mode (00:00–06:00)
